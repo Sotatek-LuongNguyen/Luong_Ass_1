@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using OrderApi.Data;
+using OrderApi.Middleware;
 using OrderApi.Service;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,9 +16,16 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.File("logs/log.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+builder.Host.UseSerilog();
 
 var app = builder.Build();
-
+app.UseMiddleware<ErrorHandlingMiddleware>();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

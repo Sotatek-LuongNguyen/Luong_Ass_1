@@ -11,10 +11,12 @@ public class OrderController : ControllerBase
 {
 
     private readonly OrderService _orderService;
+    private readonly ILogger<OrderController> _logger;
 
-    public OrderController(OrderService orderService)
+    public OrderController(OrderService orderService, ILogger<OrderController> logger)
     {
         _orderService = orderService;
+        _logger = logger;
     }
     [HttpPost("create-order")]
     public async Task<IActionResult> CreateOrder([FromBody] Order order)
@@ -33,7 +35,6 @@ public class OrderController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateOrder(int id, [FromBody] Order updatedOrder)
     {
-        // Kiểm tra nếu ID trong URL và trong payload không trùng khớp
         if (id != updatedOrder.Id)
         {
             return BadRequest("ID không khớp.");
@@ -54,6 +55,26 @@ public class OrderController : ControllerBase
         var order = await _orderService.DeleteOrderAsync(orderId);
         if (!order) return NotFound(new { message = "Order not found" });
         return Ok(new { message = "Order deleted successfully" });
+    }
+    [HttpGet("{orderId}")]
+    public async Task<IActionResult> GetOrderByIdAsync(int orderId)
+    {
+        _logger.LogInformation("Fetching order with id {OrderId}", orderId);
+        var order = await _orderService.GetOrderByIdAsync(orderId);
+        if (order == null)
+        {
+            _logger.LogWarning("Order with id {OrderId} not found", orderId);
+            return NotFound();
+        }
+        return Ok(order);
+    }
+
+    [HttpGet("test-error")]
+    public IActionResult TestError()
+    {
+        // Giả định xử lý một order và gán lỗi
+        // Ví dụ: không tìm thấy order hoặc dữ liệu không hợp lệ
+        throw new InvalidOperationException("Order không hợp lệ hoặc không tồn tại.");
     }
 }
 
