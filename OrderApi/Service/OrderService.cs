@@ -5,7 +5,7 @@ using OrderApi.Model;
 
 namespace OrderApi.Service;
 
-public class OrderService
+public class OrderService : IOrderService
 {
     private readonly OrderDbContext _context;
     private readonly HttpClient _httpClient;
@@ -95,4 +95,12 @@ public class OrderService
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<Order> GetOrderByIdAsync(int orderId)
+    {
+        var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
+        return order;
+    }
+
+
 }
