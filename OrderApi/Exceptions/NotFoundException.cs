@@ -17,10 +17,6 @@ namespace OrderApi.Exceptions
     {
         public IEnumerable<ModelValidator> Errors { get; }
 
-        public ModelvalidationException() : base("Dữ liệu không hợp lệ") { }
-
-        public ModelvalidationException(string message) : base(message) { }
-
         public ModelvalidationException(IEnumerable<ModelValidator> errors)
             : base("Dữ liệu không hợp lệ")
         {
