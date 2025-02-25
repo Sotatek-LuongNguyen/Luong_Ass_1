@@ -1,5 +1,9 @@
 ﻿using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
+using OrderApi.Exceptions;
 
 namespace OrderApi.Middleware
 {
@@ -14,51 +18,55 @@ namespace OrderApi.Middleware
             _logger = logger;
         }
 
-        public async Task InvokeAsync(HttpContext context)
+        public async Task Invoke(HttpContext context)
         {
             try
             {
-                // Chuyển tiếp xử lý request cho middleware/controller phía sau
                 await _next(context);
             }
             catch (Exception ex)
             {
-                // Middleware bắt lỗi và xử lý
                 await HandleExceptionAsync(context, ex);
             }
         }
 
         private Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
-            // Xác định mã lỗi và thông báo dựa trên loại exception
-            HttpStatusCode status;
+            int statusCode;
             string message;
-
             switch (exception)
             {
-                case ArgumentNullException _:
-                    status = HttpStatusCode.BadRequest;
-                    message = "Giá trị không được để trống.";
+                case NotFoundException notFoundEx:
+                    statusCode = StatusCodes.Status404NotFound;
+                    message = notFoundEx.Message;
+                    break; 
+                case BadRequestException badReqEx:
+                    statusCode = StatusCodes.Status400BadRequest;
+                    message = badReqEx.Message;
                     break;
-                case InvalidOperationException _:
-                    status = HttpStatusCode.BadRequest;
-                    message = "Yêu cầu không hợp lệ.";
+                case ModelvalidationException modelValidateEx:
+                    statusCode = StatusCodes.Status400BadRequest;
+                    message = modelValidateEx.Message;
                     break;
                 default:
-                    status = HttpStatusCode.InternalServerError;
-                    message = "Đã xảy ra lỗi không xác định.";
+                    statusCode = StatusCodes.Status500InternalServerError;
+                    message = exception.Message ?? "Lỗi hệ thống, vui lòng thử lại sau.";
                     break;
             }
 
-            // Ghi log lỗi với ILogger
-            _logger.LogError(exception, "Đã xảy ra lỗi: {Message}", exception.Message);
+            _logger.LogError(exception, "Error {StatusCode}: {Message}, TraceId: {TraceId}",
+                statusCode, message, context.TraceIdentifier);
 
-            // Tạo phản hồi JSON lỗi
             context.Response.ContentType = "application/json";
-            context.Response.StatusCode = (int)status;
-            var errorResponse = new { error = message, detail = exception.Message };
+            context.Response.StatusCode = statusCode;
+            var errorResponse = new
+            {
+                code = statusCode,
+                message,
+                trace = context.TraceIdentifier
+            };
 
             return context.Response.WriteAsync(JsonSerializer.Serialize(errorResponse));
         }
-    } 
+    }
 }

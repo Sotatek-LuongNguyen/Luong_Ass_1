@@ -1,6 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using OrderApi.Data;
+using OrderApi.Exceptions;
 using OrderApi.Model;
 
 namespace OrderApi.Service;
@@ -9,27 +11,28 @@ public class OrderService : IOrderService
 {
     private readonly OrderDbContext _context;
     private readonly HttpClient _httpClient;
-
-    public OrderService(OrderDbContext context, IHttpClientFactory httpClientFactory)
+    private readonly IValidator<Order> _validator;
+    public OrderService(OrderDbContext context, IHttpClientFactory httpClientFactory, IValidator<Order> validator)
     {
         _context = context;
-        // Sử dụng client được cấu hình sẵn có tên "PaymentClient"
         _httpClient = httpClientFactory.CreateClient("PaymentClient");
+        _validator = validator;
     }
-
-    // Định nghĩa lớp ánh xạ với JSON
     public class PaymentStatus
     {
         public int Id { get; set; }
         public int OrderId { get; set; }
-        public string Status { get; set; }
+        public string? Status { get; set; }
     }
-
     public async Task<string> CreateOrderAsync(Order order)
     {
+        var validationResult = await _validator.ValidateAsync(order);
+        if (!validationResult.IsValid)
+        {
+            throw new ModelvalidationException("Dữ liệu không hợp lệ");
+        }
         _context.Orders.Add(order);
 
-        // Gọi API Payment để lấy danh sách trạng thái thanh toán
         var response = await _httpClient.GetAsync("http://localhost:5062/api/Payment");
 
         if (response.IsSuccessStatusCode)
@@ -38,20 +41,14 @@ public class OrderService : IOrderService
 
             try
             {
-                // Deserialize JSON thành danh sách các PaymentStatus
                 var statuses = JsonConvert.DeserializeObject<List<PaymentStatus>>(content);
 
                 if (statuses != null && statuses.Any())
                 {
-                    // Chọn ngẫu nhiên 1 dòng từ danh sách
                     var random = new Random();
-                    string selectedStatus = statuses[random.Next(statuses.Count)].Status;
-
-                    // Cập nhật trạng thái cho order
+                    string? selectedStatus = statuses[random.Next(statuses.Count)].Status;
                     order.Status = selectedStatus;
                     await _context.SaveChangesAsync();
-
-                    // Trả về trạng thái đã chọn
                     return selectedStatus;
                 }
             }
@@ -61,8 +58,6 @@ public class OrderService : IOrderService
                 return "Lỗi xử lý dữ liệu từ Payment API";
             }
         }
-
-        // Nếu API không thành công, cập nhật trạng thái mặc định
         order.Status = "Chưa Thanh Toán";
         await _context.SaveChangesAsync();
         return "Chưa Thanh Toán";
@@ -77,9 +72,14 @@ public class OrderService : IOrderService
 
     public async Task<bool> UpdateOrderAsync(Order order)
     {
+        var validationResult = await _validator.ValidateAsync(order);
+        if (!validationResult.IsValid)
+        {
+            throw new ModelvalidationException("Dữ liệu không hợp lệ");
+        }
         var orders = await _context.Orders.FirstOrDefaultAsync(o => o.Id == order.Id);
         string status = orders.Status;
-        orders.CustomerName = order.CustomerName;
+        orders.CustomerName = order.CustomerName;                     
         orders.EmployeeName = order.EmployeeName;
         orders.InvoiceDate = order.InvoiceDate;
         orders.Status = status;

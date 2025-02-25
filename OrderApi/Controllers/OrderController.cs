@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using OrderApi.Exceptions;
 using OrderApi.Model;
 using OrderApi.Service;
 
@@ -64,7 +65,7 @@ public class OrderController : ControllerBase
         if (order == null)
         {
             _logger.LogWarning("Order with id {OrderId} not found", orderId);
-            return NotFound();
+            throw new NotFoundException();
         }
         return Ok(order);
     }
@@ -72,8 +73,6 @@ public class OrderController : ControllerBase
     [HttpGet("test-error")]
     public IActionResult TestError()
     {
-        // Giả định xử lý một order và gán lỗi
-        // Ví dụ: không tìm thấy order hoặc dữ liệu không hợp lệ
         throw new InvalidOperationException("Order không hợp lệ hoặc không tồn tại.");
     }
 }
