@@ -28,5 +28,9 @@ namespace OrderApi.Exceptions
         {
             Errors = errors;
         }
+
+        public ModelvalidationException(string? message) : base(message)
+        {
+        }
     }
 }
