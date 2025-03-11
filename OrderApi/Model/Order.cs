@@ -14,6 +14,8 @@ public class Order
 
     //[Required]
     public DateTime InvoiceDate { get; set; }
+    public int Quantity { get; set; }
+    public string? NameProduct { get; set; }
 
     //[Required]
     //[StringLength(100)]

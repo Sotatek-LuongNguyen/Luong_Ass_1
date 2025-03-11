@@ -16,10 +16,19 @@ builder.Host.UseSerilog();
 
 builder.Services.AddDbContext<OrderDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+/*builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.ListenAnyIP(5000);  // Lắng nghe trên tất cả các IP
+});*/
+builder.WebHost.UseSentry(o =>
+{
+    o.Dsn = "https://<your-dsn>@sentry.io/<project-id>";
+    o.Debug = true; // Cho biết log debug của Sentry (chỉ dùng trong development)
+    o.TracesSampleRate = 1.0; // Thu thập 100% traces (có thể giảm trong production)
+});
 builder.Services.AddHttpClient();
 builder.Services.AddHostedService<OrderStatusUpdaterService>();
-builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddValidatorsFromAssemblyContaining<ModelValidator>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -37,8 +46,9 @@ else
 {
     app.UseExceptionHandler("/error");
 }
-app.UseHttpsRedirection();
+
 app.UseAuthorization();
 app.MapControllers();
 app.UseMiddleware<ErrorHandlingMiddleware>();
+
 app.Run();
