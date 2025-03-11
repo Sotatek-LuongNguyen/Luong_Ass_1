@@ -1,0 +1,39 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Sql12345!"
+    ports:
+      - "1444:1433"
+    volumes:
+      - sqlserverdata:/var/opt/mssql
+
+  orderapi:
+    image: ${DOCKER_REGISTRY-}orderapi
+    build:
+      context: .
+      dockerfile: OrderApi/Dockerfile
+    ports:
+      - "8082:5000"
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=HTECH;Database=OrderDb1;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;
+
+    depends_on:
+      - sqlserver
+
+  paymentapi:
+    image: ${DOCKER_REGISTRY-}paymentapi
+    build:
+      context: .
+      dockerfile: PaymentApi/Dockerfile
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=HTECH;Database=OrderDb1;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;
+    depends_on:
+      - sqlserver
+
+volumes:
+  sqlserverdata: 
