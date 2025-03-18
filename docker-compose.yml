@@ -1,39 +1,51 @@
+version: '3.8'
+
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "Sql12345!"
+      MSSQL_SA_PASSWORD: "Luong_2003"
     ports:
       - "1444:1433"
     volumes:
       - sqlserverdata:/var/opt/mssql
+    networks:
+      - mynetwork
 
   orderapi:
-    image: ${DOCKER_REGISTRY-}orderapi
+    image: orderapi
     build:
       context: .
-      dockerfile: OrderApi/Dockerfile
+      dockerfile: OrderAPI/Dockerfile
     ports:
-      - "8082:5000"
+      - "8082:8080"
     environment:
-      - ConnectionStrings__DefaultConnection=Server=HTECH;Database=OrderDb1;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;
-
+      - ConnectionStrings__DefaultConnection=Server=host.docker.internal,1433;Database=OrderApi1;User Id=sa;Password=Luong_2003;TrustServerCertificate=True;
     depends_on:
       - sqlserver
+    networks:
+      - mynetwork
 
   paymentapi:
-    image: ${DOCKER_REGISTRY-}paymentapi
+    image: paymentapi
     build:
       context: .
-      dockerfile: PaymentApi/Dockerfile
+      dockerfile: PaymentAPI/Dockerfile
     ports:
       - "8080:8080"
       - "8081:8081"
     environment:
-      - ConnectionStrings__DefaultConnection=Server=HTECH;Database=OrderDb1;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;
+      - ConnectionStrings__DefaultConnection=Server=host.docker.internal,1433;Database=PaymentApi1;User Id=sa;Password=Luong_2003;TrustServerCertificate=True;
     depends_on:
       - sqlserver
+    networks:
+      - mynetwork
 
 volumes:
-  sqlserverdata: 
+  sqlserverdata:
+
+networks:
+  mynetwork:
+    driver: bridge

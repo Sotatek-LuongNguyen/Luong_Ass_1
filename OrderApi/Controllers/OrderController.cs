@@ -6,7 +6,7 @@ using OrderApi.Service;
 
 namespace OrderApi.Controllers;
 
-[Route("api/[controller]")]
+[Route("[controller]")]
 [ApiController]
 public class OrderController : ControllerBase
 {
@@ -32,7 +32,7 @@ public class OrderController : ControllerBase
         var orders = await _orderService.GetAllOrdersAsync();
         return Ok(orders);
     }
-
+    
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateOrder(int id, [FromBody] Order updatedOrder)
     {

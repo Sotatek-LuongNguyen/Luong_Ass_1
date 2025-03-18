@@ -25,7 +25,17 @@ public class PaymentController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetPayments()
     {
-        var payments = await _paymentService.GetPayMentAsync();
-        return Ok(payments);
+        try
+        {
+            var payments = await _paymentService.GetPayMentAsync();
+            return Ok(payments);
+
+        }
+        catch (Exception ex)
+        {
+
+        }
+
+        return BadRequest();
     }
 }
