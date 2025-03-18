@@ -44,6 +44,7 @@ namespace OrderApi.Service
                 _context.Orders.Add(order);
 
                 var response = await _httpClient.GetAsync("http://localhost:5062/api/Payment");
+                //var response = await _httpClient.GetAsync("http://paymentapi:8080/api/Payment");
 
                 if (response.IsSuccessStatusCode)
                 {

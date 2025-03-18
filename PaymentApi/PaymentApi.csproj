@@ -34,9 +34,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
-<ItemGroup>
-    <ProjectReference Include="..\OrderApi\OrderApi.csproj" />
-      <Content Remove="appsettings*.json" />
+<PropertyGroup>
+    <OutputPath>bin\Release\net8.0\publish\</OutputPath>
+</PropertyGroup>
 
-  </ItemGroup>
 </Project>
