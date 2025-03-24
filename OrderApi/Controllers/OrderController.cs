@@ -19,7 +19,7 @@ public class OrderController : ControllerBase
         _orderService = orderService;
         _logger = logger;
     }
-    [HttpPost("create-order")]
+    [HttpPost]
     public async Task<IActionResult> CreateOrder([FromBody] Order order)
     {
         var isCreated = await _orderService.CreateOrderAsync(order);

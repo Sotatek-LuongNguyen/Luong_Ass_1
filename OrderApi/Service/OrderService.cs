@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 using OrderApi.Data;
 using OrderApi.Exceptions;
 using OrderApi.Model;
-using System.Threading;
 
 namespace OrderApi.Service
 {
@@ -13,7 +12,7 @@ namespace OrderApi.Service
         private readonly OrderDbContext _context;
         private readonly HttpClient _httpClient;
         private readonly IValidator<Order> _validator;
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim _semaphore = new(1, 1);
 
         public OrderService(OrderDbContext context, IHttpClientFactory httpClientFactory, IValidator<Order> validator)
         {
@@ -37,39 +36,25 @@ namespace OrderApi.Service
                 throw new ModelvalidationException("Dữ liệu không hợp lệ");
             }
 
-            // Đảm bảo thao tác tạo order là thread-safe
             await _semaphore.WaitAsync();
             try
             {
                 _context.Orders.Add(order);
-
                 var response = await _httpClient.GetAsync("http://localhost:5062/api/Payment");
-                //var response = await _httpClient.GetAsync("http://paymentapi:8080/api/Payment");
 
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-
-                    try
+                    var statuses = JsonConvert.DeserializeObject<List<PaymentStatus>>(content);
+                    if (statuses != null && statuses.Any())
                     {
-                        var statuses = JsonConvert.DeserializeObject<List<PaymentStatus>>(content);
-
-                        if (statuses != null && statuses.Any())
-                        {
-                            var random = new Random();
-                            string? selectedStatus = statuses[random.Next(statuses.Count)].Status;
-                            order.Status = selectedStatus;
-                            await _context.SaveChangesAsync();
-                            return selectedStatus;
-                        }
-                    }
-                    catch (JsonException ex)
-                    {
-                        Console.WriteLine("JSON deserialization error: " + ex.Message);
-                        return "Lỗi xử lý dữ liệu từ Payment API";
-                    }
+                        var random = new Random();
+                        string? selectedStatus = statuses[random.Next(statuses.Count)].Status;
+                        order.Status = selectedStatus;
+                        await _context.SaveChangesAsync();
+                        return selectedStatus;
+                    }    
                 }
-
                 order.Status = "Chưa Thanh Toán";
                 await _context.SaveChangesAsync();
                 return "Chưa Thanh Toán";
@@ -82,10 +67,8 @@ namespace OrderApi.Service
 
         public async Task<List<Order>> GetAllOrdersAsync()
         {
-            // Phương thức chỉ đọc có thể không cần lock
             return await _context.Orders.ToListAsync();
         }
-
         public async Task<bool> UpdateOrderAsync(Order order)
         {
             var validationResult = await _validator.ValidateAsync(order);
@@ -97,21 +80,19 @@ namespace OrderApi.Service
             await _semaphore.WaitAsync();
             try
             {
-                var orders = await _context.Orders.FirstOrDefaultAsync(o => o.Id == order.Id);
-                if (orders == null)
+                var existingOrder = await _context.Orders.FirstOrDefaultAsync(o => o.Id == order.Id);
+                if (existingOrder == null)
                 {
                     return false;
                 }
 
-                // Lưu lại Status hiện tại để không bị thay đổi
-                string status = orders.Status;
-                orders.CustomerName = order.CustomerName;
-                orders.EmployeeName = order.EmployeeName;
-                orders.InvoiceDate = order.InvoiceDate;
-                orders.Quantity = order.Quantity;
-                orders.NameProduct = order.NameProduct;
-                orders.Status = status;  // Giữ nguyên Status
-
+                string status = existingOrder.Status;
+                //existingOrder.CustomerName = order.CustomerName;
+                //existingOrder.EmployeeName = order.EmployeeName;
+                //existingOrder.InvoiceDate = order.InvoiceDate;
+                //existingOrder.Quantity = order.Quantity;
+                //existingOrder.NameProduct = order.NameProduct;
+                //existingOrder.Status = status;
                 await _context.SaveChangesAsync();
                 return true;
             }
@@ -141,7 +122,6 @@ namespace OrderApi.Service
 
         public async Task<Order> GetOrderByIdAsync(int orderId)
         {
-            // Chỉ đọc, có thể không cần lock
             return await _context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
         }
     }

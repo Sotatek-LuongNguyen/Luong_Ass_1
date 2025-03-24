@@ -31,19 +31,7 @@ namespace OrderApi.Pages.Orders
         [BindProperty]
         public Order Order { get; set; } = default!;
 
-        // For more information, see https://aka.ms/RazorPagesCRUD.
-        //public async Task<IActionResult> OnPostAsync([FromBody] Order order)
-        //{
-        //    if (!ModelState.IsValid)
-        //    {
-        //        var isCreated = await _orderService.CreateOrderAsync(order);
-        //    }
-
-        //    _context.Orders.Add(Order);
-        //    await _context.SaveChangesAsync();
-
-        //    return RedirectToPage("./Index");
-        //}
+        
         public async Task<IActionResult> OnPostAsync()
         {
             try
