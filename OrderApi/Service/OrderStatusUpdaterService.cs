@@ -19,39 +19,34 @@ public class OrderStatusUpdaterService : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            try
-            {
-                using (var scope = _scopeFactory.CreateScope())
-                {
-                    var dbContext = scope.ServiceProvider.GetRequiredService<OrderDbContext>();
-                    var ordersToUpdate = await dbContext.Orders
-                        .Where(o => o.Status == "Đã Thanh Toán" || o.Status == "Chưa Thanh Toán")
-                        .ToListAsync(stoppingToken);
-                    foreach (var order in ordersToUpdate)
-                    {
-                        if (order.Status == "Đã Thanh Toán")
-                        {
-                            order.Status = "Đã Vận Chuyển";
-                        }
-                        else if (order.Status == "Chưa Thanh Toán")
-                        {
-                            order.Status = "Đã Hủy Đơn";
-                        }
-                    }
-
-                    if (ordersToUpdate.Any())
-                    {
-                        await dbContext.SaveChangesAsync(stoppingToken);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log lỗi nếu cần
-                _logger.LogError(ex, "Lỗi khi cập nhật Status");
-            }
-
+            await ProcessOrdersAsync(stoppingToken);
             await Task.Delay(_interval, stoppingToken);
+        }
+    }
+
+    private async Task ProcessOrdersAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<OrderDbContext>();
+
+            var ordersToUpdate = await dbContext.Orders
+                .Where(o => o.Status == "Đã Thanh Toán" || o.Status == "Chưa Thanh Toán")
+                .ToListAsync(stoppingToken);
+
+            if (!ordersToUpdate.Any()) return; 
+
+            foreach (var order in ordersToUpdate)
+            {
+                order.Status = order.Status == "Đã Thanh Toán" ? "Đã Vận Chuyển" : "Đã Hủy Đơn";
+            }
+
+            await dbContext.SaveChangesAsync(stoppingToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi cập nhật Status");
         }
     }
 }
