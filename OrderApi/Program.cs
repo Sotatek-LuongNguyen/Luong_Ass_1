@@ -2,42 +2,42 @@
 using OrderApi.Controllers.Validator;
 using OrderApi.Data;
 using OrderApi.Middleware;
-using OrderApi.Service;
 using Serilog;
 using FluentValidation;
+using OrderApi.Service.ServiceOrder;
+using OrderApi.Service.ServiceRole;
+using OrderApi.Service.ServiceUser;
+using OrderApi.Service.ServiceEmployee;
+using OrderApi.Service.ServiceProduct;
+using OrderApi.Service.ServiceCategory;
+using OrderApi.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
-
-
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .CreateLogger();
 builder.Host.UseSerilog();
-
 builder.Services.AddDbContext<OrderDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddHttpClient();
 builder.Services.AddHostedService<OrderStatusUpdaterService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddValidatorsFromAssemblyContaining<ModelValidator>();
-
-// 🔹 Chỉ sử dụng API và Razor Pages (KHÔNG có View)
-builder.Services.AddControllers(); 
-builder.Services.AddRazorPages(); // ⚡ Thêm Razor Pages
-
-// 🔹 Swagger (Chỉ hiển thị khi truy cập `/swagger`)
+builder.Services.AddValidatorsFromAssemblyContaining<OrderDtoValidatorException>();
+builder.Services.AddControllers();
+builder.Services.AddRazorPages();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 var app = builder.Build();
-
-// 🔹 Sử dụng file tĩnh (CSS, JS...)
 app.UseStaticFiles();
-
-// 🔹 Định tuyến
 app.UseRouting();
 
 if (app.Environment.IsDevelopment())
@@ -48,24 +48,13 @@ else
 {
     app.UseExceptionHandler("/error");
 }
-
-// 🔹 Middleware xử lý lỗi
 app.UseMiddleware<ErrorHandlingMiddleware>();
-
 app.UseAuthorization();
-
-// 🔹 Định tuyến API
-app.MapControllers(); // 🛑 Không có `MapControllerRoute()`
-
-// 🔹 Map Razor Pages
-app.MapRazorPages(); // ⚡ Giữ Razor Pages hoạt động
-
-// 🔹 Chỉ bật Swagger khi truy cập `/swagger`
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+app.MapControllers(); 
+app.MapRazorPages();
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
-    c.RoutePrefix = "swagger"; // Swagger chỉ hiển thị khi vào /swagger
-});
-
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 app.Run();

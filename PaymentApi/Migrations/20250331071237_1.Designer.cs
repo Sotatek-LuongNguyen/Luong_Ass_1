@@ -11,8 +11,8 @@ using PaymentApi.Data;
 namespace PaymentApi.Migrations
 {
     [DbContext(typeof(PaymentDbContext))]
-    [Migration("20250220031553_2")]
-    partial class _2
+    [Migration("20250331071237_1")]
+    partial class _1
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
