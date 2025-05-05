@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OrderApi.Data;
 
-namespace OrderApi.Service;
+namespace OrderApi.Service.ServiceOrder;
 
 public class OrderStatusUpdaterService : BackgroundService
 {

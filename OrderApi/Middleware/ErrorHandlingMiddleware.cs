@@ -48,6 +48,10 @@ public class ErrorHandlingMiddleware
                 statusCode = StatusCodes.Status400BadRequest;
                 message = modelValidateEx.Message;
                 break;
+            case OrderDtoValidatorException orderDtolValidateEx:
+                statusCode = StatusCodes.Status400BadRequest;
+                message = orderDtolValidateEx.Message;
+                break;
             default:
                 statusCode = StatusCodes.Status500InternalServerError;
                 message = exception.Message ?? "Lỗi hệ thống, vui lòng thử lại sau.";

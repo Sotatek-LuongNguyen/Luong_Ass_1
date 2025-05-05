@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using OrderApi.Dto;
 using OrderApi.Exceptions;
-using OrderApi.Model;
-using OrderApi.Service;
+using OrderApi.Service.ServiceOrder;
 
 namespace OrderApi.Controllers;
 
@@ -10,7 +10,6 @@ namespace OrderApi.Controllers;
 [ApiController]
 public class OrderController : ControllerBase
 {
-
     private readonly IOrderService _orderService;
     private readonly ILogger<OrderController> _logger;
 
@@ -19,29 +18,42 @@ public class OrderController : ControllerBase
         _orderService = orderService;
         _logger = logger;
     }
+
     [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromBody] Order order)
+    public async Task<IActionResult> CreateOrder([FromBody] OrderDto orderDto)
     {
-        var isCreated = await _orderService.CreateOrderAsync(order);
-        return Ok(order);
+        try 
+        {
+            var result = await _orderService.CreateOrderAsync(orderDto);
+            return Ok(new { message = "Tạo order thành công", status = result });
+        }
+        
+        catch (Exception ex)
+        {
+            return StatusCode(500, new
+            {
+                message = ex.Message,
+                detail = ex.InnerException?.Message ?? "No inner exception"
+            });
+        }
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<Order>>> GetAllOrders()
+    public async Task<ActionResult<List<OrderDto>>> GetAllOrders()
     {
         var orders = await _orderService.GetAllOrdersAsync();
         return Ok(orders);
     }
-    
+
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateOrder(int id, [FromBody] Order updatedOrder)
+    public async Task<IActionResult> UpdateOrder(int id, [FromBody] OrderDto updatedOrderDto)
     {
-        if (id != updatedOrder.Id)
+        if (id != updatedOrderDto.Id)
         {
             return BadRequest("ID không khớp.");
         }
 
-        var result = await _orderService.UpdateOrderAsync(updatedOrder);
+        var result = await _orderService.UpdateOrderAsync(updatedOrderDto);
         if (!result)
         {
             return NotFound("Order không tồn tại.");
@@ -54,19 +66,25 @@ public class OrderController : ControllerBase
     public async Task<IActionResult> DeleteOrder(int orderId)
     {
         var order = await _orderService.DeleteOrderAsync(orderId);
-        if (!order) return NotFound(new { message = "Order not found" });
-        return Ok(new { message = "Order deleted successfully" });
+        if (!order)
+        {
+            return NotFound(new { message = "Order không tồn tại." });
+        }
+
+        return Ok(new { message = "Order xóa thành công." });
     }
+
     [HttpGet("{orderId}")]
     public async Task<IActionResult> GetOrderByIdAsync(int orderId)
     {
-        _logger.LogInformation("Fetching order with id {OrderId}", orderId);
+        _logger.LogInformation("Đang tìm kiếm order với ID: {OrderId}", orderId);
         var order = await _orderService.GetOrderByIdAsync(orderId);
         if (order == null)
         {
-            _logger.LogWarning("Order with id {OrderId} not found", orderId);
-            throw new NotFoundException();
+            _logger.LogWarning("Không tìm thấy order với ID: {OrderId}", orderId);
+            throw new NotFoundException("Order không tồn tại.");
         }
+
         return Ok(order);
     }
 
@@ -76,5 +94,3 @@ public class OrderController : ControllerBase
         throw new InvalidOperationException("Order không hợp lệ hoặc không tồn tại.");
     }
 }
-
-
